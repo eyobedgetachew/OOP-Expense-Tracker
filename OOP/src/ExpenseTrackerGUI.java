@@ -1,164 +1,149 @@
-
 import java.awt.*;
+
+import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter; 
-import java.util.ArrayList;
+import java.time.format.DateTimeFormatter;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors; 
+import java.util.stream.Collectors;
 import javax.swing.*;
+
 
 
 public class ExpenseTrackerGUI extends JFrame {
 
-    private List<Expense> expenses; 
-    private CategoryManager categoryManager; 
-    private User currentUser; 
-    
-    
-   
+    // Database access object
+    private ExpenseTrackerDAO expenseDao;
+    private List<Expense> expenses; // This list now holds data loaded from the database
+
+    // GUI Components
     private ExpenseInputPanel inputPanel;
     private ExpenseTablePanel tablePanel;
     private SummaryPanel summaryPanel;
-    private JLabel messageLabel; 
+    private JLabel messageLabel;
 
+    /**
+     * Constructor for the ExpenseTrackerGUI.
+     * Initializes the GUI and connects to the database.
+     */
     public ExpenseTrackerGUI() {
-        super("Expense Tracker"); 
+        super("Expense Tracker");
 
-        expenses = new ArrayList<>(); 
-        categoryManager = new CategoryManager(); 
-        currentUser = new User(1, "User1"); 
+        // Initialize DAO and load initial data
+        try {
+            // Ensure the JDBC driver is available
+            Class.forName("org.postgresql.Driver");
+            expenseDao = new ExpenseTrackerDAO();
+            loadExpensesFromDatabase();
+        } catch (ClassNotFoundException e) {
+            JOptionPane.showMessageDialog(this,
+                    "PostgreSQL JDBC Driver not found. Please add the JAR to your classpath.",
+                    "Driver Error", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Database connection error: " + e.getMessage(),
+                    "Database Error", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
 
-      
+        // Initialize GUI components
+        CategoryManager categoryManager = new CategoryManager();
+
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); 
-        setLayout(new BorderLayout(10, 10)); 
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout(10, 10));
 
-      
         inputPanel = new ExpenseInputPanel(categoryManager.getAllCategories().toArray(new String[0]));
         tablePanel = new ExpenseTablePanel();
         summaryPanel = new SummaryPanel();
 
-      
         messageLabel = new JLabel("Welcome to Expense Tracker!");
         messageLabel.setForeground(Color.BLACK);
-        messageLabel.setHorizontalAlignment(SwingConstants.CENTER); 
+        messageLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-      
         JPanel topSectionPanel = new JPanel(new BorderLayout());
-        topSectionPanel.add(inputPanel, BorderLayout.CENTER); 
-        topSectionPanel.add(messageLabel, BorderLayout.SOUTH); 
+        topSectionPanel.add(inputPanel, BorderLayout.CENTER);
+        topSectionPanel.add(messageLabel, BorderLayout.SOUTH);
 
-       
         JPanel middleSectionPanel = new JPanel(new BorderLayout());
-        middleSectionPanel.add(tablePanel, BorderLayout.CENTER); 
+        middleSectionPanel.add(tablePanel, BorderLayout.CENTER);
 
-   
         JPanel bottomSectionPanel = new JPanel(new BorderLayout());
-        bottomSectionPanel.add(summaryPanel, BorderLayout.NORTH); 
+        bottomSectionPanel.add(summaryPanel, BorderLayout.NORTH);
 
         JPanel globalButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         JButton globalShowSummaryButton = new JButton("Show Summary");
         JButton globalDeleteSelectedButton = new JButton("Delete Selected Expense");
         globalButtonsPanel.add(globalShowSummaryButton);
         globalButtonsPanel.add(globalDeleteSelectedButton);
-        bottomSectionPanel.add(globalButtonsPanel, BorderLayout.SOUTH); 
+        bottomSectionPanel.add(globalButtonsPanel, BorderLayout.SOUTH);
 
-      
         add(topSectionPanel, BorderLayout.NORTH);
         add(middleSectionPanel, BorderLayout.CENTER);
         add(bottomSectionPanel, BorderLayout.SOUTH);
 
-
-     
+        // Add action listeners
         inputPanel.addAddExpenseListener(e -> addExpenseAction());
-
         inputPanel.addClearFieldsListener(e -> inputPanel.clearFields());
-
-       
         globalShowSummaryButton.addActionListener(e -> displaySummaryReport());
-
-       
         globalDeleteSelectedButton.addActionListener(e -> deleteSelectedExpense());
 
-
+        // Initial UI update
         updateExpenseTable();
         updateTotalExpensesLabel();
 
-      
         setVisible(true);
     }
 
-  
-    private void clearInputFields() {
-        inputPanel.clearFields();
-        messageLabel.setText(""); 
+    /**
+     * Loads all expenses from the database and updates the local list.
+     */
+    private void loadExpensesFromDatabase() throws SQLException {
+        expenses = expenseDao.getExpenses();
     }
 
-   
+    /**
+     * Handles the "Add Expense" button click.
+     * Validates input, adds the expense to the database, and refreshes the UI.
+     */
     private void addExpenseAction() {
         try {
             double amount = Double.parseDouble(inputPanel.getAmountText());
             String categoryName = inputPanel.getSelectedCategory();
             String description = inputPanel.getDescriptionText();
 
-           
-            addExpense(amount, categoryName, description);
+            // Create a new Expense object (ID will be set by the DB)
+            Expense newExpense = new Expense(amount, categoryName, description, LocalDate.now());
+
+            // Add the expense to the database and get the ID back
+            expenseDao.addExpense(newExpense);
 
             messageLabel.setText("Expense added successfully!");
             messageLabel.setForeground(Color.BLUE);
-            inputPanel.clearFields(); 
-            updateExpenseTable(); 
-            updateTotalExpensesLabel(); 
+            inputPanel.clearFields();
+            loadExpensesFromDatabase();
+            updateExpenseTable();
+            updateTotalExpensesLabel();
 
         } catch (NumberFormatException ex) {
             messageLabel.setText("Error: Invalid amount. Please enter a number.");
             messageLabel.setForeground(Color.RED);
             DialogHelper.showError(this, "Please enter a valid number for amount.", "Input Error");
-        } catch (InvalidExpenseException ex) {
-            messageLabel.setText("Error: " + ex.getMessage());
+        } catch (SQLException ex) {
+            messageLabel.setText("Error: Failed to save to database. " + ex.getMessage());
             messageLabel.setForeground(Color.RED);
-            DialogHelper.showError(this, ex.getMessage(), "Input Error");
+            DialogHelper.showError(this, "Failed to save expense: " + ex.getMessage(), "Database Error");
         }
     }
 
     /**
-     * Overloaded method: Adds a new expense with individual parameters.
-     * This method creates an Expense object internally.
-     * Demonstrates method overloading (Polymorphism).
-     * @param amount The amount of the expense.
-     * @param categoryName The category of the expense (as String).
-     * @param description The description of the expense.
-     * @return The added Expense object.
-     * @throws InvalidExpenseException If the expense amount is negative.
+     * Handles the "Delete Selected Expense" button click.
+     * Deletes the selected expense from the database and refreshes the UI.
      */
-    public Expense addExpense(double amount, String categoryName, String description) throws InvalidExpenseException {
-        if (amount < 0) {
-            throw new InvalidExpenseException("Expense amount cannot be negative.");
-        }
-       
-        Expense newExpense = new Expense(amount, categoryName, description, LocalDate.now());
-        expenses.add(newExpense); 
-        return newExpense;
-    }
-
-    /**
-     * Overloaded method: Adds an already constructed Expense object to the list.
-     * Demonstrates method overloading (Polymorphism).
-     * @param expense The Expense object to add.
-     * @throws InvalidExpenseException If the amount of the provided expense is negative.
-     */
-    public Expense addExpense(Expense expense) throws InvalidExpenseException {
-        if (expense.getAmount() < 0) {
-            throw new InvalidExpenseException("Expense amount cannot be negative.");
-        }
-        expenses.add(expense); 
-        return expense;
-    }
-
-   
     private void deleteSelectedExpense() {
         int selectedRow = tablePanel.getSelectedRow();
         if (selectedRow == -1) {
@@ -172,45 +157,56 @@ public class ExpenseTrackerGUI extends JFrame {
                 "Are you sure you want to delete this expense?", "Confirm Delete");
 
         if (confirm == JOptionPane.YES_OPTION) {
-           
-            int expenseId = (int) tablePanel.getValueAt(selectedRow, 0);
+            try {
+                int expenseId = (int) tablePanel.getValueAt(selectedRow, 0);
+                boolean deleted = expenseDao.deleteExpense(expenseId);
 
-         
-            boolean removed = expenses.removeIf(e -> e.getId() == expenseId);
-
-            if (removed) {
-                messageLabel.setText("Expense ID " + expenseId + " deleted successfully.");
-                messageLabel.setForeground(Color.BLUE);
-                updateExpenseTable(); 
-                updateTotalExpensesLabel(); 
-            } else {
-                messageLabel.setText("Failed to delete expense ID " + expenseId + " (not found).");
+                if (deleted) {
+                    messageLabel.setText("Expense ID " + expenseId + " deleted successfully.");
+                    messageLabel.setForeground(Color.BLUE);
+                    loadExpensesFromDatabase();
+                    updateExpenseTable();
+                    updateTotalExpensesLabel();
+                } else {
+                    messageLabel.setText("Failed to delete expense ID " + expenseId + " (not found).");
+                    messageLabel.setForeground(Color.RED);
+                }
+            } catch (SQLException e) {
+                messageLabel.setText("Error: Failed to delete from database. " + e.getMessage());
                 messageLabel.setForeground(Color.RED);
+                DialogHelper.showError(this, "Failed to delete expense: " + e.getMessage(), "Database Error");
             }
         }
     }
 
-    
+    /**
+     * Updates the table with the current list of expenses.
+     */
     private void updateExpenseTable() {
-        tablePanel.updateTable(expenses); 
+        tablePanel.updateTable(expenses);
     }
 
-   
+    /**
+     * Updates the total expenses label in the summary panel.
+     */
     private void updateTotalExpensesLabel() {
         double total = expenses.stream()
-                               .mapToDouble(Expense::getAmount)
-                               .sum();
-        summaryPanel.updateTotal(total); 
+                .mapToDouble(Expense::getAmount)
+                .sum();
+        summaryPanel.updateTotal(total);
     }
 
+    /**
+     * Displays a summary report of all expenses.
+     */
     private void displaySummaryReport() {
         double total = expenses.stream()
-                               .mapToDouble(Expense::getAmount)
-                               .sum();
+                .mapToDouble(Expense::getAmount)
+                .sum();
 
         Set<String> uniqueCategories = expenses.stream()
-                                               .map(Expense::getCategory)
-                                               .collect(Collectors.toCollection(HashSet::new));
+                .map(Expense::getCategory)
+                .collect(Collectors.toCollection(HashSet::new));
 
         StringBuilder report = new StringBuilder();
         report.append("--- Expense Summary Report ---\n");
@@ -221,25 +217,24 @@ public class ExpenseTrackerGUI extends JFrame {
 
         report.append("Expenses by Category:\n");
         if (uniqueCategories.isEmpty()) {
-            report.append("  No categorized expenses.\n");
+            report.append("   No categorized expenses.\n");
         } else {
-           
             for (String cat : uniqueCategories) {
                 double categoryTotal = expenses.stream()
-                                               .filter(e -> e.getCategory().equals(cat))
-                                               .mapToDouble(Expense::getAmount)
-                                               .sum();
-                report.append(String.format("  - %-15s: $%.2f\n", cat, categoryTotal));
+                        .filter(e -> e.getCategory().equals(cat))
+                        .mapToDouble(Expense::getAmount)
+                        .sum();
+                report.append(String.format("   - %-15s: $%.2f\n", cat, categoryTotal));
             }
         }
 
         report.append("\n----------------------------\n");
         report.append("Detailed Expenses (Order of Entry):\n");
         if (expenses.isEmpty()) {
-            report.append("  No detailed expenses.\n");
+            report.append("   No detailed expenses.\n");
         } else {
             expenses.forEach(expense -> {
-                report.append("  ").append(expense.toString()).append("\n");
+                report.append("   ").append(expense.toString()).append("\n");
             });
         }
         report.append("----------------------------\n");
@@ -247,7 +242,10 @@ public class ExpenseTrackerGUI extends JFrame {
         DialogHelper.showInfo(this, report.toString(), "Expense Summary");
     }
 
+    /**
+     * Main entry point for the application.
+     */
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new ExpenseTrackerGUI());
+        SwingUtilities.invokeLater(ExpenseTrackerGUI::new);
     }
 }

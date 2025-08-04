@@ -10,10 +10,7 @@ class CategoryManager {
         "FOOD", "TRANSPORT", "UTILITIES", "ENTERTAINMENT", "HOUSING", "HEALTH", "EDUCATION", "OTHER"
     ));
 
-    /**
-     * Returns an unmodifiable list of all predefined categories.
-     * @return A List of category names (Strings).
-     */
+  
     public List<String> getAllCategories() {
         return CATEGORIES;
     }

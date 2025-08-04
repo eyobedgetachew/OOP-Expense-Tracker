@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "ExpenseTrackerGUI",
+            "request": "launch",
+            "mainClass": "ExpenseTrackerGUI",
+            "projectName": "New-folder_73e051fd"
+        },
+        {
+            "type": "java",
+            "name": "Launch ExpenseTrackerGUI",
+            "request": "launch",
+            "mainClass": "ExpenseTrackerGUI",
+            "projectName": "OOP",
+            "cwd": "${workspaceFolder}/OOProjected/OOP"
+        }
+    ]
+}

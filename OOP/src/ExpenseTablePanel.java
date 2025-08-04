@@ -17,47 +17,35 @@ class ExpenseTablePanel extends JPanel {
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Make cells non-editable
+                return false; 
             }
         };
         expenseTable = new JTable(tableModel);
-        expenseTable.setFillsViewportHeight(true); // Table takes full height
+        expenseTable.setFillsViewportHeight(true); 
         JScrollPane scrollPane = new JScrollPane(expenseTable);
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    /**
-     * Updates the table with a new list of expenses.
-     * Expenses are displayed in the order provided (no internal sorting).
-     * @param expenses The list of Expense objects to display.
-     */
+   
     public void updateTable(List<Expense> expenses) {
-        tableModel.setRowCount(0); // Clear existing rows
+        tableModel.setRowCount(0); 
         for (Expense expense : expenses) {
             tableModel.addRow(new Object[]{
                 expense.getId(),
                 expense.getDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                String.format("%.2f", expense.getAmount()), // Format amount
+                String.format("%.2f", expense.getAmount()), 
                 expense.getCategory(),
                 expense.getDescription()
             });
         }
     }
 
-    /**
-     * Returns the currently selected row index in the table.
-     * @return The index of the selected row, or -1 if no row is selected.
-     */
+   
     public int getSelectedRow() {
         return expenseTable.getSelectedRow();
     }
 
-    /**
-     * Returns the value from a specific cell in the table model.
-     * @param row The row index.
-     * @param column The column index.
-     * @return The value at the specified cell.
-     */
+  
     public Object getValueAt(int row, int column) {
         return tableModel.getValueAt(row, column);
     }
