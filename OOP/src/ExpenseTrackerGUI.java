@@ -1,8 +1,4 @@
 import java.awt.*;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -14,11 +10,11 @@ import javax.swing.*;
 
 /**
  * Main class for the Expense Tracker application.
- * This class now includes functionality to save the summary report to a file.
+ * This class now delegates the file saving task to a separate class.
  */
 public class ExpenseTrackerGUI extends JFrame {
 
-    
+    // Database access object
     private ExpenseTrackerDAO expenseDao;
     private List<CategorizedExpense> expenses;
 
@@ -27,6 +23,9 @@ public class ExpenseTrackerGUI extends JFrame {
     private ExpenseTablePanel tablePanel;
     private SummaryPanel summaryPanel;
     private JLabel messageLabel;
+
+    // A new instance of the handler class for file saving
+    private SummaryFileHandler fileHandler;
 
     /**
      * Constructor for the ExpenseTrackerGUI.
@@ -55,6 +54,7 @@ public class ExpenseTrackerGUI extends JFrame {
 
         // Initialize GUI components
         CategoryManager categoryManager = new CategoryManager();
+        fileHandler = new SummaryFileHandler();
 
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -99,7 +99,19 @@ public class ExpenseTrackerGUI extends JFrame {
         inputPanel.addClearFieldsListener(e -> inputPanel.clearFields());
         globalShowSummaryButton.addActionListener(e -> displaySummaryReport());
         globalDeleteSelectedButton.addActionListener(e -> deleteSelectedExpense());
-        globalSaveSummaryButton.addActionListener(e -> saveSummaryToFile());
+        
+        // This is the new, cleaner action listener using the separate handler class
+        globalSaveSummaryButton.addActionListener(e -> {
+            String report = generateSummaryReport();
+            boolean success = fileHandler.saveSummary(this, report);
+            if (success) {
+                messageLabel.setText("Summary saved successfully!");
+                messageLabel.setForeground(Color.BLUE);
+            } else {
+                messageLabel.setText("Summary not saved. (Operation canceled or an error occurred)");
+                messageLabel.setForeground(Color.ORANGE);
+            }
+        });
 
         // Initial UI update
         updateExpenseTable();
@@ -207,7 +219,7 @@ public class ExpenseTrackerGUI extends JFrame {
 
     /**
      * Generates the summary report as a string.
-     * This method is now used by both displaySummaryReport() and saveSummaryToFile().
+     * This method is now used by both displaySummaryReport() and the new SummaryFileHandler.
      * @return A string containing the formatted summary report.
      */
     private String generateSummaryReport() {
@@ -263,30 +275,6 @@ public class ExpenseTrackerGUI extends JFrame {
     private void displaySummaryReport() {
         String report = generateSummaryReport();
         DialogHelper.showInfo(this, report, "Expense Summary");
-    }
-
-    /**
-     * Saves the summary report to a file selected by the user.
-     * Uses a BufferedWriter 
-     */
-    private void saveSummaryToFile() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Save Expense Summary Report");
-        fileChooser.setSelectedFile(new File("ExpenseSummaryReport.txt"));
-
-        int userSelection = fileChooser.showSaveDialog(this);
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            File fileToSave = fileChooser.getSelectedFile();
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave))) {
-                writer.write(generateSummaryReport());
-                messageLabel.setText("Summary saved to " + fileToSave.getAbsolutePath());
-                messageLabel.setForeground(Color.BLUE);
-            } catch (IOException ex) {
-                messageLabel.setText("Error saving file: " + ex.getMessage());
-                messageLabel.setForeground(Color.RED);
-                DialogHelper.showError(this, "Failed to save file: " + ex.getMessage(), "File Save Error");
-            }
-        }
     }
 
     /**

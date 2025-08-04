@@ -44,7 +44,11 @@ public class CategorizedExpense extends BaseExpense implements Summarizable, Pri
                 category, amount, currency, description, date.format(FORMATTER));
     }
 
-   
+    /**
+     * 
+     * Implementation of the printDetails() method from the Printable interface.
+     * This will print to the console for demonstration purposes.
+     */
     @Override
     public void printDetails() {
         System.out.printf("Printing details for Expense ID %d:%n", this.id);
