@@ -1,22 +1,26 @@
 import java.awt.*;
-
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.swing.*;
 
-
-
+/**
+ * Main class for the Expense Tracker application.
+ * This class now includes functionality to save the summary report to a file.
+ */
 public class ExpenseTrackerGUI extends JFrame {
 
     // Database access object
     private ExpenseTrackerDAO expenseDao;
-    private List<Expense> expenses; // This list now holds data loaded from the database
+    private List<CategorizedExpense> expenses;
 
     // GUI Components
     private ExpenseInputPanel inputPanel;
@@ -78,8 +82,12 @@ public class ExpenseTrackerGUI extends JFrame {
         JPanel globalButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         JButton globalShowSummaryButton = new JButton("Show Summary");
         JButton globalDeleteSelectedButton = new JButton("Delete Selected Expense");
+        JButton globalSaveSummaryButton = new JButton("Save Summary");
+
         globalButtonsPanel.add(globalShowSummaryButton);
         globalButtonsPanel.add(globalDeleteSelectedButton);
+        globalButtonsPanel.add(globalSaveSummaryButton);
+        
         bottomSectionPanel.add(globalButtonsPanel, BorderLayout.SOUTH);
 
         add(topSectionPanel, BorderLayout.NORTH);
@@ -91,6 +99,7 @@ public class ExpenseTrackerGUI extends JFrame {
         inputPanel.addClearFieldsListener(e -> inputPanel.clearFields());
         globalShowSummaryButton.addActionListener(e -> displaySummaryReport());
         globalDeleteSelectedButton.addActionListener(e -> deleteSelectedExpense());
+        globalSaveSummaryButton.addActionListener(e -> saveSummaryToFile());
 
         // Initial UI update
         updateExpenseTable();
@@ -116,8 +125,8 @@ public class ExpenseTrackerGUI extends JFrame {
             String categoryName = inputPanel.getSelectedCategory();
             String description = inputPanel.getDescriptionText();
 
-            // Create a new Expense object (ID will be set by the DB)
-            Expense newExpense = new Expense(amount, categoryName, description, LocalDate.now());
+            // Create a new CategorizedExpense object
+            CategorizedExpense newExpense = new CategorizedExpense(amount, categoryName, description, LocalDate.now());
 
             // Add the expense to the database and get the ID back
             expenseDao.addExpense(newExpense);
@@ -191,21 +200,23 @@ public class ExpenseTrackerGUI extends JFrame {
      */
     private void updateTotalExpensesLabel() {
         double total = expenses.stream()
-                .mapToDouble(Expense::getAmount)
+                .mapToDouble(CategorizedExpense::getAmount)
                 .sum();
         summaryPanel.updateTotal(total);
     }
 
     /**
-     * Displays a summary report of all expenses.
+     * Generates the summary report as a string.
+     * This method is now used by both displaySummaryReport() and saveSummaryToFile().
+     * @return A string containing the formatted summary report.
      */
-    private void displaySummaryReport() {
+    private String generateSummaryReport() {
         double total = expenses.stream()
-                .mapToDouble(Expense::getAmount)
+                .mapToDouble(CategorizedExpense::getAmount)
                 .sum();
 
         Set<String> uniqueCategories = expenses.stream()
-                .map(Expense::getCategory)
+                .map(CategorizedExpense::getCategory)
                 .collect(Collectors.toCollection(HashSet::new));
 
         StringBuilder report = new StringBuilder();
@@ -222,24 +233,60 @@ public class ExpenseTrackerGUI extends JFrame {
             for (String cat : uniqueCategories) {
                 double categoryTotal = expenses.stream()
                         .filter(e -> e.getCategory().equals(cat))
-                        .mapToDouble(Expense::getAmount)
+                        .mapToDouble(CategorizedExpense::getAmount)
                         .sum();
                 report.append(String.format("   - %-15s: $%.2f\n", cat, categoryTotal));
             }
         }
 
         report.append("\n----------------------------\n");
-        report.append("Detailed Expenses (Order of Entry):\n");
+        report.append("Detailed Expenses (Using new interfaces):\n");
         if (expenses.isEmpty()) {
             report.append("   No detailed expenses.\n");
         } else {
             expenses.forEach(expense -> {
-                report.append("   ").append(expense.toString()).append("\n");
+                // Using the getSummary() method from the Summarizable interface
+                report.append("   - ").append(expense.getSummary()).append("\n");
+
+                // Using the printDetails() method from the Printable interface (prints to console)
+                expense.printDetails();
             });
         }
         report.append("----------------------------\n");
+        
+        return report.toString();
+    }
 
-        DialogHelper.showInfo(this, report.toString(), "Expense Summary");
+    /**
+     * Displays a summary report of all expenses in a dialog box.
+     */
+    private void displaySummaryReport() {
+        String report = generateSummaryReport();
+        DialogHelper.showInfo(this, report, "Expense Summary");
+    }
+
+    /**
+     * Saves the summary report to a file selected by the user.
+     * Uses a BufferedWriter for efficient writing.
+     */
+    private void saveSummaryToFile() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Expense Summary Report");
+        fileChooser.setSelectedFile(new File("ExpenseSummaryReport.txt"));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave))) {
+                writer.write(generateSummaryReport());
+                messageLabel.setText("Summary saved to " + fileToSave.getAbsolutePath());
+                messageLabel.setForeground(Color.BLUE);
+            } catch (IOException ex) {
+                messageLabel.setText("Error saving file: " + ex.getMessage());
+                messageLabel.setForeground(Color.RED);
+                DialogHelper.showError(this, "Failed to save file: " + ex.getMessage(), "File Save Error");
+            }
+        }
     }
 
     /**

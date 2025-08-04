@@ -1,4 +1,3 @@
-
 import java.awt.*;
 import java.awt.event.ActionListener;
 import javax.swing.*;
@@ -40,7 +39,7 @@ class ExpenseInputPanel extends JPanel {
         descriptionField = new JTextField(20);
         add(descriptionField, gbc);
 
-       
+        
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         addExpenseButton = new JButton("Add Expense");
         clearFieldsButton = new JButton("Clear Fields");

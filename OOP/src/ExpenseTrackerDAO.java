@@ -1,11 +1,10 @@
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.time.LocalDate;
 
 /**
  * A Data Access Object (DAO) for the Expense Tracker application.
- * This class handles all database interactions for the 'expenses' table.
+ * This class now works with the new CategorizedExpense class.
  */
 class ExpenseTrackerDAO {
 
@@ -25,11 +24,11 @@ class ExpenseTrackerDAO {
 
     /**
      * Adds a new expense to the database.
-     * @param expense The Expense object to be added.
-     * @return The newly created Expense object with its database-generated ID.
+     * @param expense The CategorizedExpense object to be added.
+     * @return The newly created CategorizedExpense object with its database-generated ID.
      * @throws SQLException if a database access error occurs.
      */
-    public Expense addExpense(Expense expense) throws SQLException {
+    public CategorizedExpense addExpense(CategorizedExpense expense) throws SQLException {
         String sql = "INSERT INTO expenses (amount, category, description, date) VALUES (?, ?, ?, ?) RETURNING id";
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -50,11 +49,11 @@ class ExpenseTrackerDAO {
 
     /**
      * Retrieves all expenses from the database.
-     * @return A list of all Expense objects.
+     * @return A list of all CategorizedExpense objects.
      * @throws SQLException if a database access error occurs.
      */
-    public List<Expense> getExpenses() throws SQLException {
-        List<Expense> expenses = new ArrayList<>();
+    public List<CategorizedExpense> getExpenses() throws SQLException {
+        List<CategorizedExpense> expenses = new ArrayList<>();
         String sql = "SELECT id, amount, category, description, date FROM expenses ORDER BY id DESC";
 
         try (Connection conn = getConnection();
@@ -62,7 +61,7 @@ class ExpenseTrackerDAO {
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                expenses.add(new Expense(
+                expenses.add(new CategorizedExpense(
                         rs.getInt("id"),
                         rs.getDouble("amount"),
                         rs.getString("category"),

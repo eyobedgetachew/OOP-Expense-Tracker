@@ -1,4 +1,3 @@
-
 import java.awt.*;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -26,10 +25,10 @@ class ExpenseTablePanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
     }
 
-   
-    public void updateTable(List<Expense> expenses) {
+    
+    public void updateTable(List<CategorizedExpense> expenses) {
         tableModel.setRowCount(0); 
-        for (Expense expense : expenses) {
+        for (CategorizedExpense expense : expenses) {
             tableModel.addRow(new Object[]{
                 expense.getId(),
                 expense.getDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
@@ -40,12 +39,12 @@ class ExpenseTablePanel extends JPanel {
         }
     }
 
-   
+    
     public int getSelectedRow() {
         return expenseTable.getSelectedRow();
     }
 
-  
+ 
     public Object getValueAt(int row, int column) {
         return tableModel.getValueAt(row, column);
     }
