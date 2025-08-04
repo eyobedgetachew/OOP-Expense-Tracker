@@ -6,17 +6,19 @@ import javax.swing.JOptionPane;
 class DialogHelper {
 
     
-    public static void showInfo(Component parentComponent, String message, String title) {
+    public static void showInfo(Component parentComponent, String message, String title)
+     {
         JOptionPane.showMessageDialog(parentComponent, message, title, JOptionPane.INFORMATION_MESSAGE);
     }
 
   
-    public static void showError(Component parentComponent, String message, String title) {
+    public static void showError(Component parentComponent, String message, String title)
+     {
         JOptionPane.showMessageDialog(parentComponent, message, title, JOptionPane.ERROR_MESSAGE);
     }
 
   
-    public static void showWarning(Component parentComponent, String message, String title) {
+    public static void showWarning(Component parentComponent, String message, String title){
         JOptionPane.showMessageDialog(parentComponent, message, title, JOptionPane.WARNING_MESSAGE);
     }
 

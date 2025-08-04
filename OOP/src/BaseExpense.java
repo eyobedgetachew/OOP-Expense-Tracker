@@ -29,9 +29,6 @@ public abstract class BaseExpense {
     public String getDescription() { return description; }
     public LocalDate getDate() { return date; }
 
-    /**
-     * An abstract method that will be implemented by subclasses to provide a summary.
-     * @return A string summary of the expense.
-     */
+   
     public abstract String getSummary();
 }

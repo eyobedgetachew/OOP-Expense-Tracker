@@ -18,7 +18,7 @@ import javax.swing.*;
  */
 public class ExpenseTrackerGUI extends JFrame {
 
-    // Database access object
+    
     private ExpenseTrackerDAO expenseDao;
     private List<CategorizedExpense> expenses;
 
@@ -267,7 +267,7 @@ public class ExpenseTrackerGUI extends JFrame {
 
     /**
      * Saves the summary report to a file selected by the user.
-     * Uses a BufferedWriter for efficient writing.
+     * Uses a BufferedWriter 
      */
     private void saveSummaryToFile() {
         JFileChooser fileChooser = new JFileChooser();

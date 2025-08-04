@@ -25,8 +25,10 @@ public class CategorizedExpense extends BaseExpense implements Summarizable, Pri
         this.category = category;
     }
 
-    public String getCategory() { return category; }
+    public String getCategory() 
+    { return category; }
 
+    
     /**
      * Implementation of the getSummary() method from the Summarizable interface.
      */
@@ -36,20 +38,13 @@ public class CategorizedExpense extends BaseExpense implements Summarizable, Pri
                 category, amount, description, date.format(FORMATTER));
     }
 
-    /**
-     * Overloaded version of the getSummary() method.
-     * @param currency The currency symbol (e.g., "USD", "KES").
-     * @return A string summary with the specified currency.
-     */
+    
     public String getSummary(String currency) {
         return String.format("Category: %s, Amount: %.2f (%s), Description: %s, Date: %s",
                 category, amount, currency, description, date.format(FORMATTER));
     }
 
-    /**
-     * Implementation of the printDetails() method from the Printable interface.
-     * This will print to the console for demonstration purposes.
-     */
+   
     @Override
     public void printDetails() {
         System.out.printf("Printing details for Expense ID %d:%n", this.id);
